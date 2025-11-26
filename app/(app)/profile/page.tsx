@@ -45,15 +45,14 @@ export default function ProfilePage() {
         setMessage(null);
 
         try {
-            const { error } = await supabase
-                .from('app_users')
-                .update({ display_name: displayName })
-                .eq('id', user.id);
+            // Also update user_metadata.display_name
+            const { error: authError } = await supabase.auth.updateUser({
+                data: {
+                    display_name: displayName
+                }
+            });
 
-            if (error) throw error;
-
-            // Also update auth metadata if possible, but trigger usually handles sync one-way or we just rely on app_users
-            // The spec says "Update via Supabase: supabase.from('app_users').update..."
+            if (authError) throw authError;
 
             setMessage({ type: 'success', text: 'Profile updated successfully' });
         } catch (err: any) {
