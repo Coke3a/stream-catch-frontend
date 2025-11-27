@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSupabase, useUser } from '@/components/AuthProvider';
+import { useSupabase, useUser, useSession } from '@/components/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
@@ -53,55 +53,50 @@ export default function FollowsPage() {
         loadFollows();
     }, [user, supabase]);
 
+    const session = useSession();
+
     const handleAddChannel = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!url) return;
+        if (!url || !session) return;
 
         setIsAdding(true);
         setAddError(null);
         setAddSuccess(null);
 
         try {
-            // 1. Resolve URL via backend
-            const res = await fetch(`${APP_CONFIG.backendBaseUrl}/api/live-account/resolve`, {
+            // Encode URL to base64url
+            const encodedUrl = btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+            // Construct API URL
+            // Ensure backendBaseUrl doesn't have trailing slash if we add one, or vice versa.
+            // Assuming backendBaseUrl is http://localhost:8080/api/v1/ based on user feedback
+            const baseUrl = APP_CONFIG.backendBaseUrl.endsWith('/')
+                ? APP_CONFIG.backendBaseUrl
+                : `${APP_CONFIG.backendBaseUrl}/`;
+
+            const apiUrl = `${baseUrl}live-following/${encodedUrl}`;
+
+            const res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    // Assuming backend might need auth, but spec says "Call backend... then call Supabase".
-                    // Usually backend needs to know who is asking or just resolves URL publicly.
-                    // If backend is protected, we need to send token.
-                    // Spec says "Call backend... Then call Supabase".
-                    // Let's assume public endpoint for resolution or we pass token if needed.
-                    // Spec for watch-url mentions token, but resolve doesn't explicitly.
-                    // I'll add token just in case if session exists.
+                    'Authorization': `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ url }),
             });
 
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.message || 'Failed to resolve channel URL');
+            if (res.ok) {
+                setAddSuccess('Channel added successfully');
+                setUrl('');
+                loadFollows();
+            } else if (res.status === 409) {
+                throw new Error('You are already following this channel');
+            } else if (res.status === 400) {
+                const text = await res.text();
+                throw new Error(text || 'Invalid URL or unsupported platform');
+            } else {
+                const text = await res.text();
+                throw new Error(text || 'Failed to add channel');
             }
 
-            const { live_account_id } = await res.json();
-
-            // 2. Insert into follows
-            const { error } = await supabase.from('follows').insert({
-                user_id: user!.id,
-                live_account_id,
-                status: 'active',
-            });
-
-            if (error) {
-                if (error.code === '23505') { // Unique violation
-                    throw new Error('You are already following this channel');
-                }
-                throw error;
-            }
-
-            setAddSuccess('Channel added successfully');
-            setUrl('');
-            loadFollows();
         } catch (err: any) {
             setAddError(err.message || 'An error occurred');
         } finally {
