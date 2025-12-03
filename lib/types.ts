@@ -33,7 +33,7 @@ export type Recording = {
     duration_sec: number | null;
     size_bytes: number | null;
     storage_prefix: string | null;
-    status: 'processing' | 'ready' | 'failed';
+    status: 'live_recording' | 'live_end' | 'waiting_upload' | 'uploading' | 'ready' | 'failed';
     poster_storage_path: string | null;
     created_at: string;
     updated_at: string;

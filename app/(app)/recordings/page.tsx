@@ -54,7 +54,11 @@ export default function RecordingsPage() {
                     .order('started_at', { ascending: false });
 
                 if (statusFilter !== 'all') {
-                    query = query.eq('status', statusFilter);
+                    if (statusFilter === 'processing') {
+                        query = query.in('status', ['live_recording', 'live_end', 'waiting_upload', 'uploading']);
+                    } else {
+                        query = query.eq('status', statusFilter);
+                    }
                 }
 
                 const { data, error } = await query;
@@ -97,6 +101,19 @@ export default function RecordingsPage() {
             return `${(mb / 1024).toFixed(2)} GB`;
         }
         return `${mb.toFixed(0)} MB`;
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'ready':
+                return "bg-green-500/15 text-green-500";
+            case 'failed':
+                return "bg-red-500/15 text-red-500";
+            case 'live_recording':
+                return "bg-blue-500/15 text-blue-500 animate-pulse";
+            default: // live_end, waiting_upload, uploading
+                return "bg-yellow-500/15 text-yellow-500";
+        }
     };
 
     return (
@@ -189,11 +206,9 @@ export default function RecordingsPage() {
                                         <TableCell>
                                             <span className={cn(
                                                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                                                rec.status === 'ready' ? "bg-green-500/15 text-green-500" :
-                                                    rec.status === 'processing' ? "bg-yellow-500/15 text-yellow-500" :
-                                                        "bg-red-500/15 text-red-500"
+                                                getStatusColor(rec.status)
                                             )}>
-                                                {rec.status}
+                                                {rec.status.replace('_', ' ')}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -206,7 +221,7 @@ export default function RecordingsPage() {
                                                 </Link>
                                             ) : (
                                                 <Button size="sm" variant="ghost" disabled>
-                                                    Processing
+                                                    {rec.status === 'live_recording' ? 'Recording...' : 'Processing'}
                                                 </Button>
                                             )}
                                         </TableCell>
