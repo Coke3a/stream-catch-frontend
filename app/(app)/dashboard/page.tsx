@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSupabase, useUser } from '@/components/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card';
+import RecordingCover from '@/components/RecordingCover';
 import Button from '@/components/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/Table';
 import { Users, Video, PlayCircle, Plus } from 'lucide-react';
@@ -187,7 +188,13 @@ export default function DashboardPage() {
                                 {recentRecordings.map((rec) => (
                                     <TableRow key={rec.id}>
                                         <TableCell className="font-medium">
-                                            {rec.live_accounts?.account_id}
+                                            <div className="flex items-center gap-3">
+                                                <RecordingCover
+                                                    recording={rec}
+                                                    className="h-10 w-16 rounded-sm flex-shrink-0"
+                                                />
+                                                {rec.live_accounts?.account_id}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="capitalize">
                                             {rec.live_accounts?.platform}
@@ -199,7 +206,7 @@ export default function DashboardPage() {
                                             <span className={cn(
                                                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                                                 rec.status === 'ready' ? "bg-green-500/15 text-green-500" :
-                                                    rec.status === 'processing' ? "bg-yellow-500/15 text-yellow-500" :
+                                                    rec.status === 'live_recording' ? "bg-yellow-500/15 text-yellow-500" :
                                                         "bg-red-500/15 text-red-500"
                                             )}>
                                                 {rec.status}

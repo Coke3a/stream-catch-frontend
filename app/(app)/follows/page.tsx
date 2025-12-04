@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSupabase, useUser, useSession } from '@/components/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/Card';
+import RecordingCover from '@/components/RecordingCover';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import { Plus, Trash2, ExternalLink, AlertCircle, CheckCircle2, Search, Filter, ChevronDown, ChevronUp, Video, Clock, Calendar } from 'lucide-react';
@@ -356,16 +357,11 @@ export default function FollowsPage() {
                                                     <Link key={rec.id} href={`/recordings/${rec.id}`}>
                                                         <div className="group relative flex gap-3 p-3 rounded-lg border bg-background hover:border-primary/50 transition-colors cursor-pointer">
                                                             {/* Cover Image Placeholder */}
-                                                            <div className="h-20 w-32 bg-muted rounded-md flex items-center justify-center flex-shrink-0 group-hover:bg-muted/80 transition-colors">
-                                                                {rec.poster_storage_path ? (
-                                                                    // Future implementation for real image
-                                                                    <Video className="h-8 w-8 text-muted-foreground" />
-                                                                ) : (
-                                                                    <div className="text-xs font-bold text-muted-foreground capitalize">
-                                                                        {follow.live_accounts.platform}
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            {/* Cover Image */}
+                                                            <RecordingCover
+                                                                recording={rec}
+                                                                className="h-20 w-32 rounded-md flex-shrink-0"
+                                                            />
 
                                                             <div className="flex flex-col justify-between py-1 min-w-0">
                                                                 <div>
