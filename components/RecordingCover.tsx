@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Video } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 import { Recording } from '@/lib/types';
@@ -15,25 +15,41 @@ interface RecordingCoverProps {
 export default function RecordingCover({ recording, className }: RecordingCoverProps) {
     const supabase = useSupabase();
     const [error, setError] = useState(false);
+    const [src, setSrc] = useState('');
 
-    // Construct the public URL
-    // Priority:
-    // 1. recording.poster_storage_path (if it's a full URL or path we can use)
-    // 2. Derive from recording details if path is just a filename
+    // Load the signed URL for private bucket access
+    useEffect(() => {
+        const loadImage = async () => {
 
-    let src = '';
+            if (!recording.poster_storage_path) {
+                return;
+            }
 
-    if (recording.poster_storage_path) {
-        if (recording.poster_storage_path.startsWith('http')) {
-            src = recording.poster_storage_path;
-        } else {
-            // Assume it's a path within the bucket
-            const { data } = supabase.storage
+            // If it's already a full URL, use it directly
+            if (recording.poster_storage_path.startsWith('http')) {
+                setSrc(recording.poster_storage_path);
+                return;
+            }
+            // Generate a signed URL for private bucket access
+            // The URL will be valid for 1 hour (3600 seconds)
+            // Ensure the path includes the 'recordings/' folder
+            let filePath = recording.poster_storage_path;
+
+            const { data, error: signedUrlError } = await supabase.storage
                 .from(APP_CONFIG.bucketName)
-                .getPublicUrl(recording.poster_storage_path);
-            src = data.publicUrl;
-        }
-    }
+                .createSignedUrl(filePath, 3600);
+
+            if (signedUrlError || !data?.signedUrl) {
+                console.error('Failed to create signed URL:', signedUrlError);
+                setError(true);
+                return;
+            }
+
+            setSrc(data.signedUrl);
+        };
+
+        loadImage();
+    }, [recording.poster_storage_path, supabase]);
 
     if (!src || error) {
         return (
